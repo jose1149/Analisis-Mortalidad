@@ -16,5 +16,5 @@ Este repositorio está pensado para el análisis de los datos de mortalidad en e
 
 # Metodología
 
-El proyecto está ideado para la ayuda al ministerio de salud para que puedan hacer una análisis eficiente de la mortalidad, por lo cual el proyecto tiene el aval del Ministerio por lo cual existe una cooperación de ambas partes. Con respecto a la información se obtendrá de los datos abiertos disponibles, con respecto a la base de mortalidad, en vista de la sensibilidad de la información, se pide una muestra en la cual se haga un reordenamiento de las bases de mortalidad existentes de manera que los casos no reflejen la realidad nacional
+El proyecto está ideado para la ayuda al ministerio de salud para que puedan hacer una análisis eficiente de la mortalidad, por lo cual el proyecto tiene el aval del Ministerio por lo cual existe una cooperación de ambas partes. Con respecto a la información se obtendrá de los datos abiertos disponibles, con respecto a la base de mortalidad, en vista de la sensibilidad de la información, se pide una muestra en la cual se haga un reordenamiento de las bases de mortalidad existentes de manera que los casos no reflejen la realidad nacional. Con base a esta información se procede a la creación del paquete.
 

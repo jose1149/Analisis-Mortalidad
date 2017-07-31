@@ -134,15 +134,16 @@ Dado que la mayoría de estos cantones están segregados de un solo distritos la
 
 1. El distrito Telire se segregó de Bratsi  y Cahuita del cantón de Talamanca según Decreto Ejecutivo 31772-G del 14 abril del 2004. Publicado en La Gaceta 20 mayo 2007.
 
-![alt text](https://github.com/jose1149/Analisis-Mortalidad/tree/master/Bases%20de%20Datos/Poblacion/Chirripo.jpg)
-
+![Telire](https://github.com/jose1149/Analisis-Mortalidad/blob/master/Bases%20de%20Datos/Poblacion/Telire.jpg?raw=true)
 
 Sin embargo la mayor parte del distrito de Telire proviene del antiguo distrito de Bratsi, el cual pasa de tener una area de 2399.51Km^2^ a tener 179.25Km^2^. Esto también se refleja en la población, ya que Bratsi aporta 6115 habitantes de sus 10292, por lo cual la población de Telire corresponde al 59.4% de la población de Bratsi. 
 
 
 2. Similarmente el distrito de Chirripó se segregó de La Suiza y Tayutic del cantón de Turrialba según Ley 8150 del 4 de octubre del 2001.
 
-![alt text](https://github.com/jose1149/Analisis-Mortalidad/tree/master/Bases%20de%20Datos/Poblacion/Tayutic.jpg)
+![Chirripo](https://github.com/jose1149/Analisis-Mortalidad/blob/master/Bases%20de%20Datos/Poblacion/Chirripo.jpg?raw=true)
+
+
 
 
 Pero a diferencia del caso anterior si existe una mayor distribución de la población entre estos cantones y todos los distritos dan cierta cantidad de población

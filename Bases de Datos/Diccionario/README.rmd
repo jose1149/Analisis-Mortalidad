@@ -1,0 +1,5 @@
+# Diccionario de CIE10 
+Esta base es la que se utiliza para generar los diccionarios, calarmente se pueden seleccionar las enfermedades de acorde a ciertos codigos o subgrupos, la idea es que este se pueda utilizar para la creacción de cualquier otro diccionario, y que eventualmente se puda utilizar para que se le pase un diccionario base al Ministerio y ellos puedan desagreagar de la forma en que se necesite. 
+
+## Guia para la creacción de un Diccionario(En proceso de Construcción)
+

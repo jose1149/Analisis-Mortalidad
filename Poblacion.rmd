@@ -1,0 +1,287 @@
+# Datos Poblacionales
+***
+## Base de Población
+Las bases de datos poblacionales se obtienen de la pagina de consulta de [Proyección Población](http://www.inec.go.cr/proyeccionpoblacion/frmproyec.aspx) del INEC que contiene la información de la población desde el 2000 hasta el 2025, contiene las siguientes variables 
+
+1.Provincia
+2.canton
+3.Distrito
+4.Sexo
+5.Región de Planificación
+6.Sub-Región de Planificación
+7.Edad Quinquenal
+8.Region Ministerio Salud
+
+Cada variable tiene cierta cantidad de codigos únicos, en este caso Provincia tiene 7, cantón tiene 81, y distrito 477, la varaible de Edad Quinquenal cuenta con 16 grupos de edad. Es importante mencionar que al 2017 existen 481 distritos, sin embargo el INEC hace las proyecciones poblacionales con base a los distritos presentes al censo 2011, por lo cual se mantienen la cantidad de distritos al momento del censo. Finalmente luego de descargar la base de datos se hace un proceso de correción mediante excel para luego incorporarla a R y aplicarle los cambios finales, a continuación los cambios aplicados a la base.
+
+```{r}
+#Cargado de la Base 
+Poblacion <- read.csv2(file.path(getwd(),"Bases de Datos/Originales/Poblacion/Bases Utilizadas/Poblacion.csv"),colClasses = "character")
+
+# Renombrando las Variables 
+names(Poblacion) <- c("Canton","Distrito","Sexo","Edad_Quinquenal","2000","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025")
+
+# Diccionario de Distritos(Nombres y Codigos)
+NombresDistritos <- read.csv2(file.path(getwd(),"Bases de Datos/Originales/Poblacion/Bases Utilizadas/NombresDistritos_INEC_ConsultaDigital.csv"),colClasses = "character")
+NombresDistritos <- subset(NombresDistritos,!is.na(as.numeric(Codigo_Distrito)))
+
+#Eliminando subtotales(Total San Jose, Total Alajuela,....)
+Poblacion_Eliminada <- subset(Poblacion,Edad_Quinquenal=="")
+Poblacion <- subset(Poblacion,Edad_Quinquenal!="")
+Poblacion <- left_join(Poblacion,NombresDistritos,by=c("Canton","Distrito"))
+Poblacion$Sexo[Poblacion$Sexo=="Hombres"] <- "H"
+Poblacion$Sexo[Poblacion$Sexo=="Mujeres"] <- "M"
+
+# Cambiando la forma de la Base 
+PoblacionF <- gather(Poblacion,`2000`,`2001`,`2002`,`2003`,`2004`,`2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`,`2022`,`2023`,`2024`,`2025`,key = "Año",value ="Poblacion")
+
+
+# Cambiando las variables 
+PoblacionF$Poblacion <- as.numeric(PoblacionF$Poblacion)
+PoblacionF$`Año` <- as.numeric(PoblacionF$Año)
+PoblacionF$Edad_Quinquenal <- as.factor(PoblacionF$Edad_Quinquenal)
+PoblacionF$Edad_Quinquenal <- ordered(PoblacionF$Edad_Quinquenal,levels=c("0 - 4","5 - 9","10 - 14","15 - 19" ,"20 - 24" ,"25 - 29","30 - 34","35 - 39","40 - 44","45 - 49","50 - 54","55 - 59","60 - 64","65 - 69","70 - 74","75 y más"))
+
+
+# Poblacion 2000-2016
+Poblacion <- PoblacionF
+rm(lista)
+
+``` 
+
+
+
+## Sobre la Base de Población y la Base de Mortalidad
+
+Una caracteristica fundamental que debe de ser considerada para el el análisis de mortalidad distrital, es que existe una diferencia entre la cantidad de distritos de las bases poblacionales y las bases de mortalidad que provee el INEC, esta diferencia se debe a que los cambios en la administración geopolitica y la forma en que ambas bases de datos son administradas. Notese que para el 2016 Costa Rica presenta [482 distritos ](http://www.gaceta.go.cr/pub/2015/11/12/ALCA94_12_11_2015.pdf), de estos 20 fueron creados entre el 2000 y el 2015, 7 fueron creados después del 2011, y entre el 2000 y el 2011 se crearon 13 distritos nuevos, esto plantea dos interrogantes:
+
+1. ¿Por qué las estimaciones del INEC solo tienen 477 distritos?
+2. ¿Las Bases de Mortalidad consideran los cambios en los códigos distritales?
+
+Con respecto a la primera interrogante se menciono anteriormente que el INEC hace sus estimaciones a partir del Censo 2011, razón por la cual las estimaciones cuentan con 477 distritos, se debe considerar además que no se pueden hacer estimaciones de estas poblaciones a partir de las encuestas que realiza el INEC razón por la cual mantiene está cantidad de distritos 
+
+Con respecto a la segunda interrogante, la respuésta es no, cuando se empiezan a ver los datos se puede observar que existen situaciones en las cuales un distrito en particular no tiene mortalidad(de ningun tipo) antes de una fecha y luego pasa a tener cierta cantidad de muertes(en promedio), y se ve una reducción en la mortalidad del distrito del cual se desagrego.
+
+Para corregir está deficiencia de la base de datos se debe de hacer una nueva base de datos que cosidere la distribución poblacional de los distritos creados antes del 2011 y después del 2011, para poder hacer una distribución de las muertes en estos distritos de acuerdo con los pesos poblacionales. Para realizar está base primero se debe de considerar cuales son los distritos creados, su año de creación y si está incluida en las estimaciones poblacionales del INEC.
+
+Distrito|Codigo|Cantón| Año de Creación| Incluido en las Estimaciones del INEC
+--------|------|---------|------|--------------
+[BRUNKA]()|	60309	|	BUENOS AIRES	|	2000 | Si
+[CHIRRIPO](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=47570&nValor3=50475&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	30512	|	TURRIALBA	|	2001 | Si
+[LA ISABEL](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=47570&nValor3=50475&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	30511	|	TURRIALBA	|	2001 | Si
+[CARARA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=51584&nValor3=55827&param2=1&strTipM=TC&lResultado=3&strSim=simp)|	11605	|	TURRUBARES	|	2003 | Si
+[LOS GUIDO](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=51821&nValor3=56173&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	10313	|	DESAMPARADOS	|	2003 | Si
+[ESCOBAL](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=52728&nValor3=57288&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	20508	|	ATENAS	|	2004 | Si
+[LLANOS DE SANTA LUCIA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?param1=NRM&nValor1=1&nValor2=53174&nValor3=57899&strTipM=FN)|	30205	|	PARAISO	|	2004 | Si
+[TELIRE](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?param1=NRM&nValor1=1&nValor2=52863&nValor3=57475&strTipM=FN)|	70404	|	TALAMANCA	|	2004 | Si
+[KATIRA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?param1=NRM&nValor1=1&nValor2=64466&nValor3=74811&strTipM=FN )|	21504	|	GUATUSO	|	2008 | Si
+[PALMITOS](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?param1=NRM&nValor1=1&nValor2=64266&nValor3=74473&strTipM=FN)|	20608	|	NARANJO	|	2008 | Si
+[RINCON DE SABANILLA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_norma.aspx?param1=NRM&nValor1=1&nValor2=64467&nValor3=74814&strTipM=FN)|	40902	|	SAN PABLO	|	2008 | Si
+[BAHIA DRAKE](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=73338&nValor3=92946&param2=1&strTipM=TC&lResultado=2&strSim=simp)|	60506	|	OSA	|	2012 | Si
+[CANALETE](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=73337&nValor3=89976&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	21308	|	UPALA	|	2012 | Si
+[JARIS](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=72808&nValor3=89036&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	10706	|	MORA	|	2012 | Si
+[LA COLONIA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=72990&nValor3=89359&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	70207	|	POCOCI	|	2012 | Si
+[LABRADOR](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=73339&nValor3=89978&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	20404	|	SAN MATEO	|	2012 | Si
+[QUITIRRISÍ](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=78196&nValor3=98451&strTipM=TC)|	10706	|	MORA	|	2014 | No
+[LA AMISTAD](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=81253&nValor3=103523&param2=1&strTipM=TC&lResultado=1&strSim=simp)|	11912	|	PEREZ ZELEDON	|	2014 | No
+[CALDERA](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=77662&nValor3=97472&strTipM=TC)|	60206	|	ESPARZA	|	2014 | No
+[GUTIERREZ BROWN](http://www.pgrweb.go.cr/scij/Busqueda/Normativa/Normas/nrm_texto_completo.aspx?param1=NRTC&nValor1=1&nValor2=79213&nValor3=100094&strTipM=TC)|	60806	|	COTO BRUS	|	2014 | No
+
+
+De manera tal que la informacion anterior nos permite determinar a cuales serían los distritos que se deben de consideara para el análisis mediante:
+
+1. Agregando las muertes de los distritos creados después del 2011 que no estén contemplados en las proyecciones poblacionales del INEC, por ejemplo Gutierrez Brown fue creado a partir del 2014 y segregado del distrito de Coto Brus, por lo cual se van a agreagar estas muertes al distrito de Coto Brus(que si está considerado en la proyección de población del INEC)
+
+2. Distribuyendo las muertes de los distritos en sus componentes si están contempladas en las proyecciones del INEC, por ejemplo el distrito de Escobal creado en el 2004 fue segregado del distrito de Jesús, de manera que las muertes del distrito de Jesús antés del 2004 serán distribuidas entre ambos distritos.
+
+
+Para hacer lo anterior se tienen que hacer dos algoritmos, el primero determina a cuales muertes deben ser agregadas a cual distrito, mientras que el segundo como deberán ser distribuidas estás muertes, para ambos casos es necesario conocer cuando fueron creados los distritos, y de cuales distritos fueron segregados, y finalmente también se necesitan las distribuciones poblacionales entre los distritos, para las distribuciones de la población.
+
+Esta base incluye o debe de incluir las siguientes variables 
+* Año de Creación 
+* Distrito o Distritos del cual fue desagregado
+* Distribución Poblacional
+* Incluido o No en la estimación Poblacional del INEC
+
+Se sabe según la información actual que los cantones fueron segregados de la siguiente manera:
+
+
+Distrito	|	Código	|	Año de Creación	|	Segregado de Distritos	|	Codigo Distrito 
+----|-----|----|----|-----
+BRUNKA	|	60309	|	2000	|	Volcán	|	60302	|	2000
+CHIRRIPO	|	30512	|	2001	|	Tres Equis - Tayutic - La Suiza	|	30510; 30508; 30502	|	2001
+LA ISABEL	|	30511	|	2001	|	Turrialba	|	30501	|	2001
+CARARA	|	11605	|	2003	|	San Juan de Mata	|	11603	|	2003
+LOS GUIDO	|	10313	|	2003	|	Patarrá	|	10307	|	2003
+ESCOBAL	|	20508	|	2004	|	Jesús	|	20502	|	2004
+LLANOS DE SANTA LUCIA	|	30205	|	2004	|	Paraíso	|	30201	|	2004
+TELIRE	|	70404	|	2004	|	Bratsí - Sixaola - Cahuita	|	70401; 70402; 70403	|	2004
+KATIRA	|	21504	|	2008	|	Buenavista	|	21502	|	2008
+PALMITOS	|	20608	|	2008	|	Naranjo	|	20601	|	2008
+RINCON DE SABANILLA	|	40902	|	2008	|	San Pablo	|	40901	|	2008
+BAHIA DRAKE	|	60506	|	2012	|	Sierpe	|	60503	|	2012
+CANALETE	|	21308	|	2012	|	Upala	|	21301	|	2012
+JARIS	|	10706	|	2012	|	Colón	|	10701	|	2012
+LA COLONIA	|	70207	|	2012	|	Guápiles	|	70201	|	2012
+LABRADOR	|	20404	|	2012	|	Jesús María	|	20403	|	2012
+QUITIRRISÍ	|	10706	|	2014	|	-	|	-	|	2014
+LA AMISTAD	|	11912	|	2014	|	-	|	-	|	2014
+CALDERA	|	60206	|	2014	|	-	|	-	|	2014
+GUTIERREZ BROWN	|	60806	|	2014	|	-	|	-	|	2014
+
+
+Dado que la mayoría de estos cantones están segregados de un solo distritos las proyecciones del INEC revelan como se distribuyó la población luego de la segregación de los cantónes lo que facilita el análisis. Sin embargo se puede ver que el cantón de Chirripo y el de Telire fueron segregaos de más de un distrito, lo que puede complicar los análisis, pero luego de hacer algunas consultas con expertos del INEC se determino que 
+
+1. El distrito Telire se segregó de Bratsi  y Cahuita del cantón de Talamanca según Decreto Ejecutivo 31772-G del 14 abril del 2004. Publicado en La Gaceta 20 mayo 2007.
+
+![](C:/Users/mmarin/OneDrive - Ministerio de Salud Costa Rica/Ministerio de Salud/Indicadores de Mortalidad/R/Bases de Datos/Originales/Poblacion/Mapas de Distritos Creados/Telire.jpg)
+
+Sin embargo la mayor parte del distrito de Telire proviene del antiguo distrito de Bratsi, el cual pasa de tener una area de 2399.51Km^2^ a tener 179.25Km^2^. Esto también se refleja en la población, ya que Bratsi aporta 6115 habitantes de sus 10292, por lo cual la población de Telire corresponde al 59.4% de la población de Bratsi. 
+
+
+2. Similarmente el distrito de Chirripó se segregó de La Suiza y Tayutic del cantón de Turrialba según Ley 8150 del 4 de octubre del 2001.
+
+![](C:/Users/mmarin/OneDrive - Ministerio de Salud Costa Rica/Ministerio de Salud/Indicadores de Mortalidad/R/Bases de Datos/Originales/Poblacion/Mapas de Distritos Creados/Chirripo.jpg)
+
+Pero a diferencia del caso anterior si existe una mayor distribución de la población entre estos cantones y todos los distritos dan cierta cantidad de población
+
+* La Suiza(30502) aporta 1612 habitantes de sus 9202 (17.51%)
+* Tres Equis(30510) aporta 280 habitantes de sus 1946 (14.38%)
+* Tayutic(30508) aporta 2055 habitantes de sus 4452 (46.16%).
+
+
+Y a partir de está información se debe de construir la estimación de los pesos poblacionales para la segregación de la mortalidad.
+
+
+Se debe de notar que las bases poblacionales que estamos utilizando son  proyecciones que se realizan a partir de los censos 2000 y 2011, existen varios documentos en el la [sección metodológica](http://www.inec.go.cr/metodologias) del INEC que hablan sobre estas estimaciones,  el más actual es el [Documento metodológico proyecciones distritales de población](http://www.inec.go.cr/sites/default/files/documentos/poblacion/estimaciones_y_proyecciones_de_poblacion/metodologias/documentos_metodologicos/mepoblacev2014-01_0.pdf) publicado en el 2014, y es debido a que se utilizan estas proyecciones que los datos anteriores sobre los distritos de Chirripo y Telire no necesariamente concuerdan ya que se utiliza la población censada para el cálculo. 
+
+
+
+```{r Pesos para segregación de mortalidad,collapse=TRUE}
+
+#Paquetes necesarios para leer excel
+library(readxl)
+
+
+#Distritos utilizados para la creación de los pesos(Distritos Problema)
+
+temp <- read_excel(path=file.path(getwd(),"Bases de Datos/Originales/Poblacion/Bases Utilizadas/Distritos Creados Después del año 2000 vigentes al 2015.xls"),sheet ="Exportar2")
+temp$ID <- as.numeric(temp$ID)
+
+
+#Modificando la Base Poblacional#
+#*******************************#
+
+##Poblacion Total por ID y Sexo
+temp1 <- left_join(Poblacion_Final,temp,by = "Codigo_Distrito")
+temp2 <- subset(temp1,ID==1|ID==3|ID==4|ID==5|ID==6|ID==7|ID==9|ID==10|ID==11|ID==12|ID==13|ID==14|ID==15|ID==16)
+temp2 <- group_by(temp2,ID,`Año`,Sexo,Edad_Quinquenal)
+temp2 <- summarise(temp2,Poblacion_Total=sum(Poblacion))
+
+##Pesos Poblacionales por ID
+temp3 <- left_join(temp1,temp2,by = c("Sexo", "Edad_Quinquenal", "Año", "ID"))
+temp3 <- mutate(temp3,Peso=Poblacion/Poblacion_Total)
+
+## Pesos Poblacionales para Casos Especiales ID==8(Telire), ID==2(Chirripo)
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70404] <- NA
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70401] <- 0.4058492
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70402] <- 0
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70403] <- 0
+
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30502 ] <- 0.1751793
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30510] <- 0.1438849
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30508 ] <- 0.4615903
+
+
+# Base Final de Pesos por sexo
+temp3 <- select(temp3,Codigo_Distrito,Sexo,Edad_Quinquenal,Año,ID,Peso)
+Pesos_Mort_Sexo <- temp3
+
+
+Poblacion_Final_Canton <- group_by(Poblacion_Final,Canton,Codigo_Provincia,Codigo_Canton,Edad_Quinquenal,Sexo,Año)
+Poblacion_Final_Canton <-summarise(Poblacion_Final_Canton,Poblacion=sum(Poblacion))
+
+
+
+Poblacion_Final_Canton_T <- group_by(Poblacion_Final,Canton,Codigo_Provincia,Codigo_Canton,Edad_Quinquenal,Año)
+Poblacion_Final_Canton_T <-summarise(Poblacion_Final_Canton_T,Poblacion=sum(Poblacion))
+
+
+PobFiTot <- group_by(Poblacion_Final,Canton,Distrito,Edad_Quinquenal,Nombre,Codigo_Provincia,Codigo_Canton,Codigo_Distrito,Año)
+Poblacion_Final_Total <- summarise(PobFiTot,Poblacion=sum(Poblacion))
+
+PobFiTot <- group_by(Poblacion_Final,Edad_Quinquenal,Año,Sexo)
+Poblacion_Final_Pais <- summarise(PobFiTot,Poblacion=sum(Poblacion))
+
+PobFiTot <- group_by(Poblacion_Final,Edad_Quinquenal,Año)
+Poblacion_Final_Pais_Total <- summarise(PobFiTot,Poblacion=sum(Poblacion))
+
+
+
+
+
+
+# Creación de la Variable Quinquenio
+Poblacion_Final_Total$GrupoAno <- ""
+Poblacion_Final_Total$GrupoAno[between(Poblacion_Final_Total$`Año`,2000,2004)] <- "G0004"
+Poblacion_Final_Total$GrupoAno[between(Poblacion_Final_Total$`Año`,2005,2009)] <- "G0509"
+Poblacion_Final_Total$GrupoAno[between(Poblacion_Final_Total$`Año`,2010,2014)] <- "G1014"
+
+
+
+rm(temp, temp1,temp2,temp3,PobFiTot)
+```
+
+
+```{r Borrar 1,include=FALSE, eval=FALSE, include=FALSE}
+# La razón por la cual aún no borro está sección es porque no estoy realmente seguro si me va a hacer falta pero probablemente no, al dividir o segregar la mortalidad se puede agregar posteriormente la mortalidad(Hombre+Mujer) y probablemente consideraría otras cosas de corte 
+
+
+##Poblacion Total por ID y Sexo
+
+temp <- read_excel(path=file.path(getwd(),"Bases de Datos/Originales/Poblacion/Bases Utilizadas/Distritos Creados Después del año 2000 vigentes al 2015.xls"),sheet ="Exportar2")
+temp$ID <- as.numeric(temp$ID)
+
+
+
+temp1 <- left_join(Poblacion_Final_Total,temp,by = "Codigo_Distrito")
+temp2 <- subset(temp1,ID==1|ID==3|ID==4|ID==5|ID==6|ID==7|ID==9|ID==10|ID==11|ID==12|ID==13|ID==14|ID==15|ID==16)
+temp2 <- group_by(temp2,ID,`Año`,Edad_Quinquenal)
+temp2 <- summarise(temp2,Poblacion_Total=sum(Poblacion))
+
+###Pesos Poblacionales por ID
+temp3 <- left_join(temp1,temp2,by = c("Edad_Quinquenal", "Año", "ID"))
+temp3 <- mutate(temp3,Peso=Poblacion/Poblacion_Total)
+
+### Pesos Poblacionales para Casos Especiales ID==8(Telire), ID==2(Chirripo)
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70404] <- 0.5941508
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70401] <- 0.4058492
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70402] <- 0
+temp3$Peso[temp3$ID==8 & temp3$Codigo_Distrito==70403] <- 0
+
+  
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30502 ] <- 0.1751793
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30510] <- 0.1438849
+temp3$Peso[temp3$ID==2 & temp3$Codigo_Distrito==30508 ] <- 0.4615903
+
+# Base Final de Pesos por sexo
+temp3 <- select(temp3,Codigo_Distrito,Edad_Quinquenal,Año,ID,Peso)
+Pesos_Mort_Sexo_Tot <- temp3
+
+
+
+
+
+
+
+#Eliminando variables "Basura"
+rm(temp, temp1,temp2,temp3)
+
+```
+
+Hecho los pesos poblacionales puede uno preguntarse si el método selecionado es realmente valido, existen una gran variedad de situaciones en las cuales no necesariamente una distribución por población sea valida, por ejemplo puede ser que la población del distrito creado sea muy joven y las muertes del distrito del cual se desagregan tenga un conte muy alto en enfermedades de viejos.
+
+
+
+
+

@@ -6,7 +6,7 @@ Este repositorio está pensado para el análisis de los datos de mortalidad en e
  * Mejorar la capacidad de analisis de datos del Ministerio de Salud
 ## Objetivos Especificos
   * Montar una base de diccionarios con las cuales se puedan generar los análisis de mortalidad 
-  * Generar una base de población con base en la página de [consulta de población del INEC]( http://www.inec.go.cr/proyeccionpoblacion/frmproyec.asp)
+  * Generar una base de población con base en la página de [consulta de población del INEC]( http://www.inec.go.cr/proyeccionpoblacion)
   * Crear funciones que generen de manera automática
     * Bases de datos de mortalidad con base a algunos parámetros predefinidos
     * Gráficos y cuadros para un análisis rápido  

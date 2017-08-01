@@ -3,14 +3,14 @@
 ## Base de Población
 Las bases de datos poblacionales se obtienen de la pagina de consulta de [Proyección Población](http://www.inec.go.cr/proyeccionpoblacion/frmproyec.aspx) del INEC que contiene la información de la población desde el 2000 hasta el 2025, contiene las siguientes variables 
 
-1.Provincia
-2.canton
-3.Distrito
-4.Sexo
-5.Región de Planificación
-6.Sub-Región de Planificación
-7.Edad Quinquenal
-8.Region Ministerio Salud
+1. Provincia
+2. Canton
+3. Distrito
+4. Sexo
+5. Región de Planificación
+6. Sub-Región de Planificación
+7. Edad Quinquenal
+8. Region Ministerio Salud
 
 Cada variable tiene cierta cantidad de codigos únicos, en este caso Provincia tiene 7, cantón tiene 81, y distrito 477, la varaible de Edad Quinquenal cuenta con 16 grupos de edad. Es importante mencionar que al 2017 existen 481 distritos, sin embargo el INEC hace las proyecciones poblacionales con base a los distritos presentes al censo 2011, por lo cual se mantienen la cantidad de distritos al momento del censo. Finalmente luego de descargar la base de datos se hace un proceso de correción mediante excel para luego incorporarla a R y aplicarle los cambios finales, a continuación los cambios aplicados a la base.
 
